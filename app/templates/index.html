@@ -1,0 +1,44 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Cocktail Advisor</title>
+    <script src="https://unpkg.com/htmx.org@1.8.0"></script>
+    <style>
+        .chat-container { max-width: 600px; margin: auto; }
+        .chat-box { height: 400px; overflow-y: scroll; border: 1px solid #ccc; padding: 10px; }
+        .user-message { color: blue; }
+        .bot-message { color: green; }
+    </style>
+</head>
+<body>
+    <div class="chat-container">
+        <div id="chat-box" class="chat-box"></div>
+        <input type="text" id="message" placeholder="Ask about cocktails..." 
+               hx-post="/api/chat" hx-trigger="keyup[keyCode==13]" 
+               hx-swap="none" hx-ext="json-enc">
+    </div>
+    <script>
+        let sessionId = localStorage.getItem('sessionId') || 'session-' + Math.random().toString(36).substr(2, 9);
+        localStorage.setItem('sessionId', sessionId);
+
+        document.body.addEventListener('htmx:configRequest', (ev) => {
+            ev.detail.headers['Content-Type'] = 'application/json';
+            ev.detail.body = JSON.stringify({
+                message: document.getElementById('message').value,
+                session_id: sessionId
+            });
+        });
+
+        document.body.addEventListener('htmx:afterRequest', (ev) => {
+            if (ev.detail.successful) {
+                const response = JSON.parse(ev.detail.xhr.response);
+                const chatBox = document.getElementById('chat-box');
+                chatBox.innerHTML += `<div class="user-message">You: ${document.getElementById('message').value}</div>`;
+                chatBox.innerHTML += `<div class="bot-message">Bot: ${response.response}</div>`;
+                document.getElementById('message').value = '';
+                chatBox.scrollTop = chatBox.scrollHeight;
+            }
+        });
+    </script>
+</body>
+</html>
